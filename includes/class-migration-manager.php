@@ -97,6 +97,106 @@ class STLM_Migration_Manager
     }
 
     /**
+     * Preview which fields will be mapped from legacy content.
+     *
+     * @param int $post_id
+     * @return array<string,mixed>
+     */
+    public function preview_mapping($post_id)
+    {
+        $post_id = (int) $post_id;
+        $post = get_post($post_id);
+        if (! $post || $post->post_type !== 'video') {
+            return array(
+                'post_id' => $post_id,
+                'title' => '',
+                'is_legacy' => false,
+                'field_count' => 0,
+                'fields' => array(),
+                'message' => 'Post not found or not video.',
+            );
+        }
+
+        $content = (string) $post->post_content;
+        if (! $this->is_legacy_content($content)) {
+            return array(
+                'post_id' => $post_id,
+                'title' => get_the_title($post_id),
+                'is_legacy' => false,
+                'field_count' => 0,
+                'fields' => array(),
+                'message' => 'Legacy block content not found.',
+            );
+        }
+
+        $mapped = $this->parser->parse($content);
+        return array(
+            'post_id' => $post_id,
+            'title' => get_the_title($post_id),
+            'is_legacy' => true,
+            'field_count' => count($mapped),
+            'fields' => $mapped,
+            'message' => empty($mapped) ? 'No mapped fields extracted.' : 'Preview generated successfully.',
+        );
+    }
+
+    /**
+     * Return currently saved enhanced fields for a post.
+     *
+     * @param int $post_id
+     * @return array<string,mixed>
+     */
+    public function get_migrated_fields($post_id)
+    {
+        $post_id = (int) $post_id;
+        $post = get_post($post_id);
+        if (! $post || $post->post_type !== 'video') {
+            return array(
+                'post_id' => $post_id,
+                'title' => '',
+                'field_count' => 0,
+                'fields' => array(),
+                'message' => 'Post not found or not video.',
+            );
+        }
+
+        $fields_to_check = array(
+            'enhanced_directors',
+            'enhanced_synopsis',
+            'enhanced_writers',
+            'enhanced_producers',
+            'enhanced_composers',
+            'enhanced_duration',
+            'enhanced_genres',
+            'enhanced_country',
+            'enhanced_countries_of_production',
+            'enhanced_language',
+            'enhanced_aspect_ratio',
+            'enhanced_poster_9_16',
+            'enhanced_poster_title_image_16_9',
+            'enhanced_stills_gallery',
+        );
+
+        $saved = array();
+        foreach ($fields_to_check as $field) {
+            $value = get_post_meta($post_id, '_' . $field, true);
+            if (is_array($value) && ! empty($value)) {
+                $saved[$field] = $value;
+            } elseif (! is_array($value) && $value !== '') {
+                $saved[$field] = $value;
+            }
+        }
+
+        return array(
+            'post_id' => $post_id,
+            'title' => get_the_title($post_id),
+            'field_count' => count($saved),
+            'fields' => $saved,
+            'message' => empty($saved) ? 'No migrated/saved enhanced fields found.' : 'Saved enhanced fields loaded.',
+        );
+    }
+
+    /**
      * @return array<string,mixed>
      */
     public function run_bulk($force = false, $dry_run = false)

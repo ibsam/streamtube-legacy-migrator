@@ -37,7 +37,11 @@
             html += '<td><span class="stlm-status stlm-status-' + row.status + '">' + row.status + "</span></td>";
             html += "<td>" + (row.message || "") + "</td>";
             html += "<td>" + (row.updated_at || "") + "</td>";
-            html += '<td><button type="button" class="button stlm-run-single" data-post-id="' + row.post_id + '">Migrate</button></td>';
+            html += '<td class="stlm-row-actions">';
+            html += '<button type="button" class="button stlm-preview-mapping" data-post-id="' + row.post_id + '">Preview Mapping</button> ';
+            html += '<button type="button" class="button stlm-show-migrated-fields" data-post-id="' + row.post_id + '">Show Migrated Fields</button> ';
+            html += '<button type="button" class="button stlm-run-single" data-post-id="' + row.post_id + '">Migrate</button>';
+            html += "</td>";
             html += "</tr>";
         });
         $("#stlm-rows").html(html);
@@ -104,6 +108,46 @@
         });
     }
 
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function renderFieldDetails(title, data) {
+        var html = '<h3>' + escapeHtml(title) + '</h3>';
+        html += '<p><strong>Post ID:</strong> ' + escapeHtml(data.post_id || "") + ' &nbsp; ';
+        html += '<strong>Field Count:</strong> ' + escapeHtml(data.field_count || 0) + '</p>';
+        html += '<p><strong>Message:</strong> ' + escapeHtml(data.message || "") + '</p>';
+        html += '<pre>' + escapeHtml(JSON.stringify(data.fields || {}, null, 2)) + '</pre>';
+        $("#stlm-field-details").html(html);
+    }
+
+    function loadFieldAction(action, postId, panelTitle) {
+        if (!postId) {
+            return;
+        }
+        $("#stlm-field-details").html("<p>Loading...</p>");
+        $.post(STLM_DATA.ajax_url, {
+            action: action,
+            nonce: STLM_DATA.nonce,
+            post_id: postId
+        }).done(function (resp) {
+            if (!resp || !resp.success) {
+                showNotice("error", (resp && resp.data && resp.data.message) ? resp.data.message : STLM_DATA.i18n.error);
+                $("#stlm-field-details").html("<p>Failed to load details.</p>");
+                return;
+            }
+            renderFieldDetails(panelTitle, resp.data || {});
+        }).fail(function () {
+            showNotice("error", STLM_DATA.i18n.error);
+            $("#stlm-field-details").html("<p>Failed to load details.</p>");
+        });
+    }
+
     $(document).on("click", "#stlm-run-bulk", function () {
         var confirmationMessage = isDryRun() ? STLM_DATA.i18n.confirm_bulk_dry_run : STLM_DATA.i18n.confirm_bulk;
         if (!window.confirm(confirmationMessage)) {
@@ -133,6 +177,16 @@
             force: boolFlag("#stlm-force-remap"),
             dry_run: boolFlag("#stlm-dry-run")
         }, isDryRun() ? "Single video dry run completed." : "Single video migration completed.");
+    });
+
+    $(document).on("click", ".stlm-preview-mapping", function () {
+        var postId = $(this).data("post-id");
+        loadFieldAction("stlm_preview_mapping", postId, "Preview Mapping (Legacy -> Enhanced)");
+    });
+
+    $(document).on("click", ".stlm-show-migrated-fields", function () {
+        var postId = $(this).data("post-id");
+        loadFieldAction("stlm_get_migrated_fields", postId, "Saved Migrated Enhanced Fields");
     });
 
     $(document).on("change", "#stlm-filter-status", function () {

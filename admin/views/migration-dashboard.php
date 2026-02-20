@@ -81,11 +81,20 @@ $logs = isset($payload['logs']) && is_array($payload['logs']) ? $payload['logs']
                     <td><span class="stlm-status stlm-status-<?php echo esc_attr((string) $row['status']); ?>"><?php echo esc_html((string) $row['status']); ?></span></td>
                     <td><?php echo esc_html((string) $row['message']); ?></td>
                     <td><?php echo esc_html((string) $row['updated_at']); ?></td>
-                    <td><button type="button" class="button stlm-run-single" data-post-id="<?php echo esc_attr((string) $row['post_id']); ?>">Migrate</button></td>
+                    <td class="stlm-row-actions">
+                        <button type="button" class="button stlm-preview-mapping" data-post-id="<?php echo esc_attr((string) $row['post_id']); ?>">Preview Mapping</button>
+                        <button type="button" class="button stlm-show-migrated-fields" data-post-id="<?php echo esc_attr((string) $row['post_id']); ?>">Show Migrated Fields</button>
+                        <button type="button" class="button stlm-run-single" data-post-id="<?php echo esc_attr((string) $row['post_id']); ?>">Migrate</button>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
+
+    <h2>Field Details</h2>
+    <div id="stlm-field-details" class="stlm-field-details">
+        <p>Select a row action to view mapped/migrated fields.</p>
+    </div>
 
     <h2>Migration Logs</h2>
     <div class="stlm-log-wrap">

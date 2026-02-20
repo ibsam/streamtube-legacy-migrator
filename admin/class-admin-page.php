@@ -31,6 +31,8 @@ class STLM_Admin_Page
         add_action('wp_ajax_stlm_run_bulk_migration', array($this, 'ajax_run_bulk'));
         add_action('wp_ajax_stlm_run_chunk_migration', array($this, 'ajax_run_chunk'));
         add_action('wp_ajax_stlm_run_single_migration', array($this, 'ajax_run_single'));
+        add_action('wp_ajax_stlm_preview_mapping', array($this, 'ajax_preview_mapping'));
+        add_action('wp_ajax_stlm_get_migrated_fields', array($this, 'ajax_get_migrated_fields'));
     }
 
     public function register_menu()
@@ -132,6 +134,30 @@ class STLM_Admin_Page
         }
 
         $result = STLM_Migration_Manager::instance()->run_single($post_id, $force, $dry_run);
+        wp_send_json_success($result);
+    }
+
+    public function ajax_preview_mapping()
+    {
+        $this->validate_ajax_request();
+        $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        if ($post_id <= 0) {
+            wp_send_json_error(array('message' => 'Invalid post ID.'));
+        }
+
+        $result = STLM_Migration_Manager::instance()->preview_mapping($post_id);
+        wp_send_json_success($result);
+    }
+
+    public function ajax_get_migrated_fields()
+    {
+        $this->validate_ajax_request();
+        $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        if ($post_id <= 0) {
+            wp_send_json_error(array('message' => 'Invalid post ID.'));
+        }
+
+        $result = STLM_Migration_Manager::instance()->get_migrated_fields($post_id);
         wp_send_json_success($result);
     }
 
