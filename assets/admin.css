@@ -1,0 +1,88 @@
+.stlm-wrap .stlm-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.stlm-wrap .stlm-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.stlm-wrap .stlm-card .stlm-label {
+    display: block;
+    color: #50575e;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.stlm-wrap .stlm-card strong {
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.stlm-wrap .stlm-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.stlm-wrap .stlm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.stlm-wrap .stlm-actions #stlm-chunk-limit {
+    width: 90px;
+}
+
+.stlm-wrap .stlm-force-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stlm-wrap .stlm-table-controls {
+    margin: 8px 0 12px;
+}
+
+.stlm-status {
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    text-transform: capitalize;
+    display: inline-block;
+}
+
+.stlm-status-pending {
+    background: #f0f0f1;
+}
+
+.stlm-status-migrated {
+    background: #d1e7dd;
+}
+
+.stlm-status-failed {
+    background: #f8d7da;
+}
+
+.stlm-status-skipped {
+    background: #fff3cd;
+}
+
+.stlm-status-dry-run {
+    background: #dbeafe;
+}
+
+.stlm-log-wrap {
+    max-height: 360px;
+    overflow: auto;
+}
+
