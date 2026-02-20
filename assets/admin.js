@@ -118,27 +118,56 @@
     }
 
     function renderFieldDetails(title, data) {
+        ensureDetailsPanel();
         var html = '<h3>' + escapeHtml(title) + '</h3>';
         html += '<p><strong>Post ID:</strong> ' + escapeHtml(data.post_id || "") + ' &nbsp; ';
         html += '<strong>Field Count:</strong> ' + escapeHtml(data.field_count || 0) + '</p>';
         html += '<p><strong>Message:</strong> ' + escapeHtml(data.message || "") + '</p>';
         html += '<pre>' + escapeHtml(JSON.stringify(data.fields || {}, null, 2)) + '</pre>';
         $("#stlm-field-details").html(html);
+        var panelTop = $("#stlm-field-details").offset();
+        if (panelTop && typeof panelTop.top !== "undefined") {
+            $("html, body").animate({ scrollTop: Math.max(0, panelTop.top - 80) }, 200);
+        }
+    }
+
+    function ensureDetailsPanel() {
+        if ($("#stlm-field-details").length) {
+            return;
+        }
+        var fallbackHtml = [
+            '<h2>Field Details</h2>',
+            '<div id="stlm-field-details" class="stlm-field-details">',
+            "<p>Select a row action to view mapped/migrated fields.</p>",
+            "</div>"
+        ].join("");
+
+        if ($(".stlm-log-wrap").length) {
+            $(fallbackHtml).insertBefore(".stlm-log-wrap");
+        } else if ($(".stlm-wrap").length) {
+            $(".stlm-wrap").append(fallbackHtml);
+        }
     }
 
     function loadFieldAction(action, postId, panelTitle) {
         if (!postId) {
             return;
         }
+        ensureDetailsPanel();
         $("#stlm-field-details").html("<p>Loading...</p>");
         $.post(STLM_DATA.ajax_url, {
             action: action,
             nonce: STLM_DATA.nonce,
             post_id: postId
         }).done(function (resp) {
-            if (!resp || !resp.success) {
+            if (!resp || typeof resp !== "object") {
+                showNotice("error", "Unexpected response from server.");
+                $("#stlm-field-details").html("<pre>" + escapeHtml(String(resp)) + "</pre>");
+                return;
+            }
+            if (!resp.success) {
                 showNotice("error", (resp && resp.data && resp.data.message) ? resp.data.message : STLM_DATA.i18n.error);
-                $("#stlm-field-details").html("<p>Failed to load details.</p>");
+                $("#stlm-field-details").html("<pre>" + escapeHtml(JSON.stringify(resp.data || {}, null, 2)) + "</pre>");
                 return;
             }
             renderFieldDetails(panelTitle, resp.data || {});

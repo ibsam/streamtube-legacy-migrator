@@ -10,7 +10,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('STLM_VERSION', '1.0.0');
+define('STLM_VERSION', '1.0.1');
 define('STLM_PLUGIN_FILE', __FILE__);
 define('STLM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('STLM_PLUGIN_URL', plugin_dir_url(__FILE__));
