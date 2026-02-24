@@ -130,6 +130,48 @@ class STLM_Migration_Manager
         }
 
         $mapped = $this->parser->parse($content);
+
+        $film_title = isset($mapped['enhanced_film_title']) && $mapped['enhanced_film_title'] !== '' ? $mapped['enhanced_film_title'] : get_the_title($post_id);
+        $release_date = isset($mapped['enhanced_original_release_date']) ? $mapped['enhanced_original_release_date'] : '';
+        $release_year = $release_date !== '' && strtotime($release_date) !== false ? date('Y', strtotime($release_date)) : get_the_date('Y', $post_id);
+        $directors = isset($mapped['enhanced_directors']) ? (string) $mapped['enhanced_directors'] : '';
+
+        if (! empty($mapped['enhanced_poster_9_16']) && is_string($mapped['enhanced_poster_9_16'])) {
+            $mapped['enhanced_poster_9_16_new_filename'] = STLM_Image_Renamer::build_media_filename_from_parts(
+                $film_title,
+                $release_year,
+                $directors,
+                'poster',
+                basename(wp_parse_url($mapped['enhanced_poster_9_16'], PHP_URL_PATH))
+            );
+        }
+        if (! empty($mapped['enhanced_poster_title_image_16_9']) && is_string($mapped['enhanced_poster_title_image_16_9'])) {
+            $mapped['enhanced_poster_title_image_16_9_new_filename'] = STLM_Image_Renamer::build_media_filename_from_parts(
+                $film_title,
+                $release_year,
+                $directors,
+                'title_image',
+                basename(wp_parse_url($mapped['enhanced_poster_title_image_16_9'], PHP_URL_PATH))
+            );
+        }
+        if (! empty($mapped['enhanced_stills_gallery']) && is_array($mapped['enhanced_stills_gallery'])) {
+            $new_filenames = array();
+            $idx = 1;
+            foreach ($mapped['enhanced_stills_gallery'] as $url) {
+                if (is_string($url) && $url !== '') {
+                    $new_filenames[] = STLM_Image_Renamer::build_media_filename_from_parts(
+                        $film_title,
+                        $release_year,
+                        $directors,
+                        'STILL_' . $idx,
+                        basename(wp_parse_url($url, PHP_URL_PATH))
+                    );
+                }
+                $idx++;
+            }
+            $mapped['enhanced_stills_gallery_new_filenames'] = $new_filenames;
+        }
+
         return array(
             'post_id' => $post_id,
             'title' => get_the_title($post_id),
@@ -184,6 +226,21 @@ class STLM_Migration_Manager
                 $saved[$field] = $value;
             } elseif (! is_array($value) && $value !== '') {
                 $saved[$field] = $value;
+            }
+        }
+
+        if (! empty($saved['enhanced_poster_9_16']) && is_string($saved['enhanced_poster_9_16'])) {
+            $saved['enhanced_poster_9_16_filename'] = basename(wp_parse_url($saved['enhanced_poster_9_16'], PHP_URL_PATH));
+        }
+        if (! empty($saved['enhanced_poster_title_image_16_9']) && is_string($saved['enhanced_poster_title_image_16_9'])) {
+            $saved['enhanced_poster_title_image_16_9_filename'] = basename(wp_parse_url($saved['enhanced_poster_title_image_16_9'], PHP_URL_PATH));
+        }
+        if (! empty($saved['enhanced_stills_gallery']) && is_array($saved['enhanced_stills_gallery'])) {
+            $saved['enhanced_stills_gallery_filenames'] = array();
+            foreach ($saved['enhanced_stills_gallery'] as $url) {
+                if (is_string($url) && $url !== '') {
+                    $saved['enhanced_stills_gallery_filenames'][] = basename(wp_parse_url($url, PHP_URL_PATH));
+                }
             }
         }
 

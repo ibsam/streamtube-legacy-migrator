@@ -71,6 +71,46 @@ class STLM_Image_Renamer
     }
 
     /**
+     * Build filename from explicit parts (for preview before meta is saved).
+     * Pattern: {film_title}_{release_year}_{directors}_{SUFFIX}.ext
+     *
+     * @param string $film_title
+     * @param string $release_year e.g. 2024
+     * @param string $directors
+     * @param string $suffix e.g. poster, title_image, STILL_1
+     * @param string $original_name optional filename for extension
+     * @return string
+     */
+    public static function build_media_filename_from_parts($film_title, $release_year, $directors, $suffix, $original_name = '')
+    {
+        $parts = array();
+        if ((string) $film_title !== '') {
+            $parts[] = self::slug_component((string) $film_title);
+        }
+        if ((string) $release_year !== '') {
+            $parts[] = self::slug_component((string) $release_year);
+        }
+        if ((string) $directors !== '') {
+            $directors_clean = str_replace(',', ' and ', (string) $directors);
+            $parts[] = self::slug_component($directors_clean);
+        }
+        if (empty($parts)) {
+            $parts[] = 'movie';
+        }
+        $normalized_suffix = strtoupper(preg_replace('/[^A-Za-z0-9]+/', '_', (string) $suffix));
+        $normalized_suffix = trim(preg_replace('/_+/', '_', $normalized_suffix), '_');
+        $parts[] = $normalized_suffix;
+        $base = implode('_', array_filter($parts));
+        if ($original_name !== '') {
+            $ext = pathinfo((string) $original_name, PATHINFO_EXTENSION);
+            if (! empty($ext)) {
+                $base .= '.' . strtolower($ext);
+            }
+        }
+        return $base;
+    }
+
+    /**
      * @param string $value
      * @return string
      */
