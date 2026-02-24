@@ -346,7 +346,22 @@ class STLM_Migration_Manager
             return array('status' => 'dry-run', 'message' => $message);
         }
 
+        // 1) Save all text/array meta first (so filename builder can use film_title, directors, release date)
+        if (empty($mapped['enhanced_film_title'])) {
+            $mapped['enhanced_film_title'] = get_the_title($post_id);
+        }
+        if (empty($mapped['enhanced_original_release_date'])) {
+            $post_date = get_the_date('Y-m-d', $post_id);
+            if ($post_date) {
+                $mapped['enhanced_original_release_date'] = $post_date;
+            }
+        }
+
+        $image_fields = array('enhanced_poster_9_16', 'enhanced_poster_title_image_16_9', 'enhanced_stills_gallery');
         foreach ($mapped as $field => $value) {
+            if (in_array($field, $image_fields, true)) {
+                continue;
+            }
             $meta_key = '_' . $field;
             if (is_array($value)) {
                 update_post_meta($post_id, $meta_key, array_values(array_filter($value)));
@@ -359,6 +374,37 @@ class STLM_Migration_Manager
             update_post_meta($post_id, '_enhanced_countries_of_production', array($mapped['enhanced_country']));
         } elseif (! empty($mapped['enhanced_countries_of_production']) && ! is_array($mapped['enhanced_countries_of_production'])) {
             update_post_meta($post_id, '_enhanced_countries_of_production', array($mapped['enhanced_countries_of_production']));
+        }
+
+        // 2) Copy and rename images with wizard-style nomenclature; update meta with new URLs
+        if (! empty($mapped['enhanced_poster_9_16']) && is_string($mapped['enhanced_poster_9_16'])) {
+            $new_url = STLM_Image_Renamer::copy_and_rename($post_id, $mapped['enhanced_poster_9_16'], 'poster');
+            if ($new_url !== false) {
+                update_post_meta($post_id, '_enhanced_poster_9_16', $new_url);
+            } else {
+                update_post_meta($post_id, '_enhanced_poster_9_16', $mapped['enhanced_poster_9_16']);
+            }
+        }
+        if (! empty($mapped['enhanced_poster_title_image_16_9']) && is_string($mapped['enhanced_poster_title_image_16_9'])) {
+            $new_url = STLM_Image_Renamer::copy_and_rename($post_id, $mapped['enhanced_poster_title_image_16_9'], 'title_image');
+            if ($new_url !== false) {
+                update_post_meta($post_id, '_enhanced_poster_title_image_16_9', $new_url);
+            } else {
+                update_post_meta($post_id, '_enhanced_poster_title_image_16_9', $mapped['enhanced_poster_title_image_16_9']);
+            }
+        }
+        if (! empty($mapped['enhanced_stills_gallery']) && is_array($mapped['enhanced_stills_gallery'])) {
+            $new_stills = array();
+            $idx = 1;
+            foreach ($mapped['enhanced_stills_gallery'] as $url) {
+                if (! is_string($url) || $url === '') {
+                    continue;
+                }
+                $new_url = STLM_Image_Renamer::copy_and_rename($post_id, $url, 'STILL_' . $idx);
+                $new_stills[] = $new_url !== false ? $new_url : $url;
+                $idx++;
+            }
+            update_post_meta($post_id, '_enhanced_stills_gallery', $new_stills);
         }
 
         $field_count = count($mapped);

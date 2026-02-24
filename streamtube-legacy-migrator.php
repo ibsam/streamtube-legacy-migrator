@@ -19,6 +19,7 @@ define('STLM_OPTION_STATUS_MAP', 'stlm_migration_status_map');
 define('STLM_OPTION_LOGS', 'stlm_migration_logs');
 
 require_once STLM_PLUGIN_DIR . 'includes/class-legacy-content-parser.php';
+require_once STLM_PLUGIN_DIR . 'includes/class-stlm-image-renamer.php';
 require_once STLM_PLUGIN_DIR . 'includes/class-migration-manager.php';
 require_once STLM_PLUGIN_DIR . 'admin/class-admin-page.php';
 
