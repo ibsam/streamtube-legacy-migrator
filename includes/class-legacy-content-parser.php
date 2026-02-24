@@ -25,10 +25,11 @@ class STLM_Legacy_Content_Parser
         $images = array();
         $gallery_images = array();
         $paragraphs = array();
+        $tables = array();
 
         if (function_exists('parse_blocks')) {
             $blocks = parse_blocks($content);
-            $this->walk_blocks($blocks, $images, $gallery_images, $paragraphs);
+            $this->walk_blocks($blocks, $images, $gallery_images, $paragraphs, $tables);
         } else {
             $this->fallback_extract($content, $images, $gallery_images, $paragraphs);
         }
@@ -87,6 +88,48 @@ class STLM_Legacy_Content_Parser
             }
         }
 
+        // Director bio and photo (from table near the end of the layout).
+        $director_name = isset($mapped['enhanced_directors']) ? (string) $mapped['enhanced_directors'] : '';
+        if ($director_name !== '' && ! empty($tables)) {
+            foreach ($tables as $table_html) {
+                $plain = $this->clean_text($table_html);
+                if ($plain === '') {
+                    continue;
+                }
+                $lines = preg_split("/\n+/", $plain);
+                if (! is_array($lines) || empty($lines)) {
+                    continue;
+                }
+                $first_line = trim((string) $lines[0]);
+                if ($first_line === '' || stripos($first_line, $director_name) === false) {
+                    continue;
+                }
+                array_shift($lines);
+                $bio_lines = array();
+                foreach ($lines as $line) {
+                    $line = trim((string) $line);
+                    if ($line !== '') {
+                        $bio_lines[] = $line;
+                    }
+                }
+                $bio = trim(implode("\n", $bio_lines));
+                if ($bio !== '') {
+                    $mapped['enhanced_director_bio'] = $bio;
+                    break;
+                }
+            }
+        }
+
+        // If we found a director bio and there is more than one image, assume
+        // the last non-gallery image in the sequence is the director photo.
+        if (! empty($mapped['enhanced_director_bio']) && count($images) > 1) {
+            $last_image = end($images);
+            if ($last_image) {
+                $mapped['enhanced_director_photo'] = esc_url_raw((string) $last_image);
+            }
+            reset($images);
+        }
+
         return $mapped;
     }
 
@@ -97,8 +140,9 @@ class STLM_Legacy_Content_Parser
      * @param array<int,string> $images
      * @param array<int,string> $gallery_images
      * @param array<int,string> $paragraphs
+     * @param array<int,string> $tables
      */
-    private function walk_blocks(array $blocks, array &$images, array &$gallery_images, array &$paragraphs)
+    private function walk_blocks(array $blocks, array &$images, array &$gallery_images, array &$paragraphs, array &$tables)
     {
         foreach ($blocks as $block) {
             $name = isset($block['blockName']) ? (string) $block['blockName'] : '';
@@ -123,10 +167,15 @@ class STLM_Legacy_Content_Parser
                 if ($html !== '') {
                     $paragraphs[] = $html;
                 }
+            } elseif ($name === 'core/table') {
+                $html = isset($block['innerHTML']) ? (string) $block['innerHTML'] : '';
+                if ($html !== '') {
+                    $tables[] = $html;
+                }
             }
 
             if (isset($block['innerBlocks']) && is_array($block['innerBlocks']) && ! empty($block['innerBlocks'])) {
-                $this->walk_blocks($block['innerBlocks'], $images, $gallery_images, $paragraphs);
+                $this->walk_blocks($block['innerBlocks'], $images, $gallery_images, $paragraphs, $tables);
             }
         }
 
