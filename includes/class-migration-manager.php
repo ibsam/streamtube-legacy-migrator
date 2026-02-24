@@ -35,7 +35,7 @@ class STLM_Migration_Manager
     /**
      * @return array<string,mixed>
      */
-    public function get_dashboard_payload($filter = 'all', $page = 1, $per_page = 20)
+    public function get_dashboard_payload($filter = 'all', $page = 1, $per_page = 20, $search = '')
     {
         $legacy_ids = $this->get_legacy_video_ids();
         $status_map = $this->get_status_map();
@@ -57,6 +57,22 @@ class STLM_Migration_Manager
                 $failed_count++;
             }
             $rows_all[] = $row;
+        }
+
+        // Optional search by title or ID.
+        $search = is_string($search) ? trim($search) : '';
+        if ($search !== '') {
+            $rows_all = array_values(array_filter($rows_all, function ($row) use ($search) {
+                $haystack = isset($row['title']) ? (string) $row['title'] : '';
+                $post_id_str = isset($row['post_id']) ? (string) $row['post_id'] : '';
+                if (is_numeric($search)) {
+                    // Exact ID match or substring in title.
+                    if ($post_id_str === (string) (int) $search) {
+                        return true;
+                    }
+                }
+                return (stripos($haystack, $search) !== false) || ($post_id_str !== '' && stripos($post_id_str, $search) !== false);
+            }));
         }
 
         if ($filter !== 'all') {

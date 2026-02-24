@@ -62,13 +62,41 @@
         $("#stlm-logs").html(html);
     }
 
-    function refreshDashboard() {
+    function getCurrentPage() {
+        var p = parseInt($("#stlm-current-page").val(), 10);
+        return isNaN(p) || p < 1 ? 1 : p;
+    }
+
+    function getPerPage() {
+        var p = parseInt($("#stlm-per-page").val(), 10);
+        return isNaN(p) || p < 1 ? 20 : Math.min(100, p);
+    }
+
+    function renderPagination(pagination) {
+        if (!pagination || !pagination.total_pages) {
+            return;
+        }
+        var page = parseInt(pagination.page, 10) || 1;
+        var totalPages = parseInt(pagination.total_pages, 10) || 1;
+        var totalRows = parseInt(pagination.total_rows, 10) || 0;
+        $("#stlm-current-page").val(page);
+        $("#stlm-page-current").text(page);
+        $("#stlm-page-total").text(totalPages);
+        $("#stlm-total-rows").text(totalRows);
+        $("#stlm-pagination .stlm-page-first, #stlm-pagination .stlm-page-prev").prop("disabled", page <= 1);
+        $("#stlm-pagination .stlm-page-next, #stlm-pagination .stlm-page-last").prop("disabled", page >= totalPages);
+    }
+
+    function refreshDashboard(requestedPage) {
+        var page = requestedPage !== undefined ? requestedPage : getCurrentPage();
+        var perPage = getPerPage();
         $.post(STLM_DATA.ajax_url, {
             action: "stlm_get_dashboard_data",
             nonce: STLM_DATA.nonce,
             filter: $("#stlm-filter-status").val() || "all",
-            page: 1,
-            per_page: STLM_DATA.per_page || 20
+            page: page,
+            per_page: perPage,
+            search: $("#stlm-search-query").val() || ""
         }).done(function (resp) {
             if (!resp || !resp.success) {
                 showNotice("error", (resp && resp.data && resp.data.message) ? resp.data.message : STLM_DATA.i18n.error);
@@ -78,6 +106,7 @@
             renderStats(data.stats || {});
             renderRows(data.rows || []);
             renderLogs(data.logs || []);
+            renderPagination(data.pagination || {});
         }).fail(function () {
             showNotice("error", STLM_DATA.i18n.error);
         });
@@ -100,6 +129,7 @@
                 renderStats(payloadData.stats || {});
                 renderRows(payloadData.rows || []);
                 renderLogs(payloadData.logs || []);
+                renderPagination(payloadData.pagination || {});
             } else {
                 refreshDashboard();
             }
@@ -219,11 +249,51 @@
     });
 
     $(document).on("change", "#stlm-filter-status", function () {
-        refreshDashboard();
+        $("#stlm-current-page").val(1);
+        refreshDashboard(1);
+    });
+
+    $(document).on("change", "#stlm-per-page", function () {
+        $("#stlm-current-page").val(1);
+        refreshDashboard(1);
+    });
+
+    $(document).on("keypress", "#stlm-search-query", function (e) {
+        if (e.which === 13) {
+            $("#stlm-current-page").val(1);
+            refreshDashboard(1);
+        }
     });
 
     $(document).on("click", "#stlm-refresh", function () {
         refreshDashboard();
+    });
+
+    $(document).on("click", "#stlm-pagination .stlm-page-first", function () {
+        if ($(this).prop("disabled")) {
+            return;
+        }
+        refreshDashboard(1);
+    });
+    $(document).on("click", "#stlm-pagination .stlm-page-prev", function () {
+        if ($(this).prop("disabled")) {
+            return;
+        }
+        refreshDashboard(Math.max(1, getCurrentPage() - 1));
+    });
+    $(document).on("click", "#stlm-pagination .stlm-page-next", function () {
+        if ($(this).prop("disabled")) {
+            return;
+        }
+        var totalPages = parseInt($("#stlm-page-total").text(), 10) || 1;
+        refreshDashboard(Math.min(totalPages, getCurrentPage() + 1));
+    });
+    $(document).on("click", "#stlm-pagination .stlm-page-last", function () {
+        if ($(this).prop("disabled")) {
+            return;
+        }
+        var totalPages = parseInt($("#stlm-page-total").text(), 10) || 1;
+        refreshDashboard(totalPages);
     });
 })(jQuery);
 

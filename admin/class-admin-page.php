@@ -99,8 +99,9 @@ class STLM_Admin_Page
         $filter = isset($_POST['filter']) ? sanitize_text_field(wp_unslash($_POST['filter'])) : 'all';
         $page = isset($_POST['page']) ? (int) $_POST['page'] : 1;
         $per_page = isset($_POST['per_page']) ? (int) $_POST['per_page'] : 20;
+        $search = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
 
-        $payload = STLM_Migration_Manager::instance()->get_dashboard_payload($filter, $page, $per_page);
+        $payload = STLM_Migration_Manager::instance()->get_dashboard_payload($filter, $page, $per_page, $search);
         wp_send_json_success($payload);
     }
 

@@ -51,6 +51,37 @@
 
 .stlm-wrap .stlm-table-controls {
     margin: 8px 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.stlm-wrap .stlm-table-controls label {
+    margin: 0;
+}
+
+.stlm-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin: 12px 0 20px;
+    padding: 10px 0;
+}
+
+.stlm-pagination .stlm-pagination-info {
+    margin-right: 8px;
+}
+
+.stlm-pagination .stlm-pagination-links {
+    display: flex;
+    gap: 6px;
+}
+
+.stlm-pagination .stlm-pagination-links .button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .stlm-status {

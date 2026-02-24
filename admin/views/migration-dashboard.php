@@ -6,6 +6,11 @@ if (! defined('ABSPATH')) {
 $stats = isset($payload['stats']) && is_array($payload['stats']) ? $payload['stats'] : array();
 $rows = isset($payload['rows']) && is_array($payload['rows']) ? $payload['rows'] : array();
 $logs = isset($payload['logs']) && is_array($payload['logs']) ? $payload['logs'] : array();
+$pagination = isset($payload['pagination']) && is_array($payload['pagination']) ? $payload['pagination'] : array();
+$current_page = isset($pagination['page']) ? (int) $pagination['page'] : 1;
+$total_pages = isset($pagination['total_pages']) ? (int) $pagination['total_pages'] : 1;
+$total_rows = isset($pagination['total_rows']) ? (int) $pagination['total_rows'] : 0;
+$per_page = isset($pagination['per_page']) ? (int) $pagination['per_page'] : 20;
 ?>
 <div class="wrap stlm-wrap">
     <h1><?php esc_html_e('Standalone Legacy Migration Plugin', 'streamtube-legacy-migrator'); ?></h1>
@@ -55,6 +60,14 @@ $logs = isset($payload['logs']) && is_array($payload['logs']) ? $payload['logs']
             <option value="skipped">Skipped</option>
             <option value="dry-run">Dry-run</option>
         </select>
+        <label for="stlm-search-query">Search</label>
+        <input type="text" id="stlm-search-query" placeholder="Search by ID or title" />
+        <label for="stlm-per-page">Per page</label>
+        <select id="stlm-per-page">
+            <option value="20" <?php selected($per_page, 20); ?>>20</option>
+            <option value="50" <?php selected($per_page, 50); ?>>50</option>
+            <option value="100" <?php selected($per_page, 100); ?>>100</option>
+        </select>
     </div>
     <table class="widefat fixed striped">
         <thead>
@@ -90,6 +103,16 @@ $logs = isset($payload['logs']) && is_array($payload['logs']) ? $payload['logs']
             <?php endforeach; ?>
         </tbody>
     </table>
+    <div class="stlm-pagination" id="stlm-pagination">
+        <input type="hidden" id="stlm-current-page" value="<?php echo (int) $current_page; ?>" />
+        <span class="stlm-pagination-info">Page <strong id="stlm-page-current"><?php echo (int) $current_page; ?></strong> of <strong id="stlm-page-total"><?php echo (int) $total_pages; ?></strong> (<strong id="stlm-total-rows"><?php echo (int) $total_rows; ?></strong> records)</span>
+        <span class="stlm-pagination-links">
+            <button type="button" class="button stlm-page-first">First</button>
+            <button type="button" class="button stlm-page-prev">Previous</button>
+            <button type="button" class="button stlm-page-next">Next</button>
+            <button type="button" class="button stlm-page-last">Last</button>
+        </span>
+    </div>
 
     <h2>Field Details</h2>
     <div id="stlm-field-details" class="stlm-field-details">
