@@ -88,7 +88,7 @@ class STLM_Legacy_Content_Parser
             }
         }
 
-        // Director bio and photo (from table near the end of the layout).
+        // Director bio and photo (from table, reusable block, or paragraph).
         $director_name = isset($mapped['enhanced_directors']) ? (string) $mapped['enhanced_directors'] : '';
         if ($director_name !== '' && ! empty($tables)) {
             foreach ($tables as $table_html) {
@@ -96,33 +96,65 @@ class STLM_Legacy_Content_Parser
                 if ($plain === '') {
                     continue;
                 }
+                // Match if table contains director name; bio = text after first occurrence.
+                if (stripos($plain, $director_name) === false) {
+                    continue;
+                }
+                $pos = stripos($plain, $director_name);
+                $after = substr($plain, $pos + strlen($director_name));
+                $bio = trim(preg_replace('/^\s*\n+/', "\n", (string) $after));
+                $bio = trim($bio, " \t\n\r\0\x0B-");
+                if ($bio !== '' && strlen($bio) > 5 && ! $this->contains_detail_label($bio)) {
+                    $mapped['enhanced_director_bio'] = $bio;
+                    break;
+                }
+                // Fallback: first line = name, rest = bio.
                 $lines = preg_split("/\n+/", $plain);
-                if (! is_array($lines) || empty($lines)) {
-                    continue;
-                }
-                $first_line = trim((string) $lines[0]);
-                if ($first_line === '' || stripos($first_line, $director_name) === false) {
-                    continue;
-                }
-                array_shift($lines);
-                $bio_lines = array();
-                foreach ($lines as $line) {
-                    $line = trim((string) $line);
-                    if ($line !== '') {
-                        $bio_lines[] = $line;
+                if (is_array($lines) && count($lines) > 1) {
+                    $first_line = trim((string) $lines[0]);
+                    if ($first_line !== '' && stripos($first_line, $director_name) !== false) {
+                        array_shift($lines);
+                        $bio_lines = array();
+                        foreach ($lines as $line) {
+                            $line = trim((string) $line);
+                            if ($line !== '') {
+                                $bio_lines[] = $line;
+                            }
+                        }
+                        $bio = trim(implode("\n", $bio_lines));
+                        if ($bio !== '' && ! $this->contains_detail_label($bio)) {
+                            $mapped['enhanced_director_bio'] = $bio;
+                            break;
+                        }
                     }
                 }
-                $bio = trim(implode("\n", $bio_lines));
-                if ($bio !== '') {
+            }
+        }
+
+        // Fallback: director bio in a paragraph (e.g. director name + bio in same block).
+        if ($director_name !== '' && empty($mapped['enhanced_director_bio'])) {
+            foreach ($paragraphs as $paragraph_html) {
+                $plain = $this->clean_text($paragraph_html);
+                if ($plain === '' || stripos($plain, $director_name) === false) {
+                    continue;
+                }
+                if ($this->contains_detail_label($plain) || stripos($plain, 'Directed by') !== false) {
+                    continue;
+                }
+                $pos = stripos($plain, $director_name);
+                $after = substr($plain, $pos + strlen($director_name));
+                $bio = trim(preg_replace('/^\s*\n+/', "\n", (string) $after));
+                $bio = trim($bio, " \t\n\r\0\x0B-");
+                if ($bio !== '' && strlen($bio) > 5 && ! $this->contains_detail_label($bio)) {
                     $mapped['enhanced_director_bio'] = $bio;
                     break;
                 }
             }
         }
 
-        // If we found a director bio and there is more than one image, assume
-        // the last non-gallery image in the sequence is the director photo.
-        if (! empty($mapped['enhanced_director_bio']) && count($images) > 1) {
+        // Director photo: last image in block order is usually the director headshot.
+        // Set when we have a director and more than one image (no bio required).
+        if ($director_name !== '' && count($images) > 1) {
             $last_image = end($images);
             if ($last_image) {
                 $mapped['enhanced_director_photo'] = esc_url_raw((string) $last_image);
@@ -171,6 +203,18 @@ class STLM_Legacy_Content_Parser
                 $html = isset($block['innerHTML']) ? (string) $block['innerHTML'] : '';
                 if ($html !== '') {
                     $tables[] = $html;
+                }
+            } elseif ($name === 'core/block' && ! empty($attrs['ref']) && function_exists('parse_blocks')) {
+                // Reusable block: director bio/photo often live inside a ref'd block.
+                $ref_id = (int) $attrs['ref'];
+                if ($ref_id > 0) {
+                    $ref_post = get_post($ref_id);
+                    if ($ref_post && $ref_post->post_type === 'wp_block' && (string) $ref_post->post_content !== '') {
+                        $ref_blocks = parse_blocks($ref_post->post_content);
+                        if (! empty($ref_blocks)) {
+                            $this->walk_blocks($ref_blocks, $images, $gallery_images, $paragraphs, $tables);
+                        }
+                    }
                 }
             }
 
